@@ -2,9 +2,6 @@
 #Franklin_SLO1.py
 #09/13/2022
 
-# afranklin@anthonytheboss.ninja
-# anthonytheboss.ninja
-
 #Simple Python GUI program to perform CRUD operations on local and NOSQL DBs
 #User can also utilize datasets and import those to a table in the DBs
 #User can filter data and save it to a table and/or export it to csv, json, or xml
@@ -19,9 +16,6 @@ from tkinter.font import BOLD
 from tkinter.ttk import *
 from ttkwidgets import Table
 from tkinter.messagebox import QUESTION, askokcancel, askyesno, showinfo, INFO, WARNING, showwarning
-import os
-from os import listdir
-import sys
 from tkinter import filedialog as fd
 import sqlite3 as sl
 import pandas as pd
@@ -314,15 +308,25 @@ if choice > 0 and choice < 4:
         if colname != '' and oper != '' and filter != '':
             query = colname + ' ' +  oper + ' '+ filter
         filter_DBtable(query)
-    found_it = False    
+    #Define function to let user search table and return results dynamically
+    found_it = False
     to_search = tk.StringVar() 
     _detached = set()
-    def _columns_searcher(event):
-        if event.keysym == 'Return': return
-        global _detached 
+    def _columns_searcher(event): 
+        global _detached
+        if event.keysym == 'BackSpace' and len(_detached) > 0:
+            for row in _detached:
+                    table.reattach(row, '', END)
         if to_search.get() != '':
             query = to_search.get()
             children = list(table.get_children())
+            if event.keysym == 'Return' and found_it == True:
+                for item_id in children:
+                    text = table.item(item_id)['values']
+                    if query not in text:
+                        _detached.add(item_id)
+                        table.detach(item_id)
+                return
             _brut_searcher(children, query)
         else:
             if len(_detached) > 0:
@@ -348,12 +352,11 @@ if choice > 0 and choice < 4:
                         table.detach(item_id)
     def search_results(event = None):
         global found_it
-        ent.delete(0, END)
         if found_it == False:
+            ent.delete(0, END)
             if len(_detached) > 0:
                 reset_rows()
                 showinfo("Query Results", 'No items match your search', icon=INFO, default='ok')
-        else: return
 
     #Reattaches rows removed for search
     def reset_rows():
@@ -412,16 +415,11 @@ if choice > 0 and choice < 4:
         self.focus(rowid)
         self.selection_set(rowid)
         column = self.identify_column(event.x)
-
         # get column position info
         x,y,width,height = self.bbox(rowid, column)
-
         # y-axis offset
         pady = 0
-
-        
-	
-        # place Entry popup properly
+       # place Entry popup properly
         text = self.item(rowid, 'values')[int(column[1:])-1]
         self.entryPopup = EntryPopup(self, rowid, int(column[1:])-1, text)
         self.entryPopup.place(x=x, y=y+pady, width=width, height=height, anchor='w')
@@ -451,30 +449,33 @@ if choice > 0 and choice < 4:
                 global data
                 item[self.column] = self.get()
                 self.tv.item(rowid, values = item)
-                data = []
-                self.destroy()
-                root.update()
-                for row in self.tv.get_children():
-                    data.append(tuple(self.tv.item(row)['values']))
-                save_changes()
+                if save_changes():
+                    data = []
+                    self.destroy()
+                    root.update()
+                    for row in self.tv.get_children():
+                        data.append(tuple(self.tv.item(row)['values']))
 
-                showinfo("\U0001F44C", 'Record Has Been Updated!', icon=INFO)
-            else:
-                showinfo("\N{thumbs down sign}", 'Record Not Changed!', icon=INFO)
+                    showinfo("\U0001F44C", 'Record Has Been Updated!', icon=INFO)
+                else:
+                    showinfo("\N{thumbs down sign}", 'Changes not saved.')
+                    showinfo("\N{thumbs down sign}", 'Record Not Changed!', icon=INFO)
 
         def select_all(self, *ignore):
-            
             ''' Set selection on the whole text '''
             self.selection_range(0, 'end')
-
             # returns 'break' to interrupt default key-bindings
             return 'break'
+
     #Writes to DB table and commits
     def save_changes():
         global tablename
         global mon_db
-        title = simpledialog.askstring('Table Name', 'Choose a name for this table:\nIf you do not enter a name, the current table will be overwritten!')
-        if title != '': tablename = title
+        try:
+            title = simpledialog.askstring('Table Name', 'Choose a name for this table:\nIf you do not enter a name, the current table will be overwritten!')
+        except:
+            return False
+        if title != '' and title is not None: tablename = title
         cur.execute('DELETE FROM {}'.format(tablename))
         qm = ''
         for i in range(len(headers)-1):
