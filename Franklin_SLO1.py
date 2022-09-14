@@ -2,6 +2,9 @@
 #Franklin_SLO1.py
 #09/13/2022
 
+# afranklin@anthonytheboss.ninja
+# anthonytheboss.ninja
+
 #Simple Python GUI program to perform CRUD operations on local and NOSQL DBs
 #User can also utilize datasets and import those to a table in the DBs
 #User can filter data and save it to a table and/or export it to csv, json, or xml
